@@ -1,0 +1,11 @@
+:root {
+  --color-primary: 13, 110, 253; /* azul panel */
+  --color-secondary: 15, 23, 42; /* slate oscuro */
+  --color-accent: 248, 180, 0;
+  --color-muted: 148, 163, 184;
+  --radius-xl: 28px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --shadow-card: 0 24px 48px rgba(15, 23, 42, 0.08);
+  --spacing: 16px;
+}

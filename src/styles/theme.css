@@ -1,0 +1,11 @@
+@import "./tokens.css";
+
+:root {
+  color-scheme: light;
+}
+
+.card-surface {
+  background: #fff;
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+}
