@@ -27,6 +27,8 @@ export interface Cart {
   logistics_hours?: number;
   tolls?: number;
   notes?: string;
+  order_id?: string | null;
+  order_status?: string | null;
   items: CartItem[];
 }
 
@@ -46,7 +48,10 @@ export const useCartStore = defineStore("cart", () => {
   const toast = useToastStore();
   const auth = useAuthStore();
 
-  const itemsCount = computed(() => cart.value?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0);
+  const itemsCount = computed(() => {
+    if (cart.value?.order_id) return 0;
+    return cart.value?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+  });
 
   async function loadCart() {
     loading.value = true;
@@ -119,15 +124,20 @@ export const useCartStore = defineStore("cart", () => {
     }
     const { data } = await api.post("/orders/checkout", { cart_id: cart.value.id });
     toast.success("Pedido confirmado");
+    // Reinicia carrito y sesión para evitar ítems viejos
+    const newToken = crypto.randomUUID();
+    localStorage.setItem("session_token", newToken);
+    try {
+      const { data: newCart } = await api.post("/cart", { session_token: newToken, delivery_type: "pickup" });
+      cart.value = newCart;
+    } catch (error) {
+      cart.value = null;
+    }
     return data;
   }
 
   async function updateDetails(payload: Partial<Cart>) {
     const sessionToken = ensureSessionToken();
-    if (!payload.event_start || !payload.event_end || !payload.delivery_address) {
-      toast.warning("Completá las fechas y la dirección.");
-      return;
-    }
     await api.patch("/cart", payload, { headers: { "X-Session-Token": sessionToken } });
     await loadCart();
     toast.success("Datos del evento actualizados");

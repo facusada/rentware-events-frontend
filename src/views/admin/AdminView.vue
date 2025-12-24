@@ -18,10 +18,27 @@ const loading = ref(false);
 const seasons = ref<any[]>([]);
 const movements = ref<any[]>([]);
 const newSeason = reactive({ name: "Temporada", start_date: "", end_date: "", high_season: true, deposit_ratio: 0.5 });
+const categories = ref<any[]>([]);
+const showCreateProduct = ref(false);
+const savingProduct = ref(false);
+const newProduct = reactive({
+  name: "",
+  description: "",
+  category_id: "",
+  base_price: 0,
+  requires_guarantee: false,
+  units_per_box: 1,
+  piece_type: "",
+  condition_status: "",
+  photo_url: "",
+});
+const imageHint = ref("");
 
 onMounted(async () => {
   await catalog.fetchCatalog();
   try {
+    const { data: categoriesData } = await api.get("/catalog/categories");
+    categories.value = categoriesData;
     const { data: logi } = await api.get("/config/logistics");
     Object.assign(logistics, logi);
     const { data: guar } = await api.get("/config/guarantee");
@@ -81,10 +98,148 @@ async function addSeason() {
     loading.value = false;
   }
 }
+
+function resetNewProduct() {
+  Object.assign(newProduct, {
+    name: "",
+    description: "",
+    category_id: "",
+    base_price: 0,
+    requires_guarantee: false,
+    units_per_box: 1,
+    piece_type: "",
+    condition_status: "",
+    photo_url: "",
+  });
+  imageHint.value = "";
+}
+
+async function createProduct() {
+  if (!newProduct.name || !newProduct.base_price || newProduct.units_per_box <= 0) {
+    toast.warning("Nombre, precio y unidades por caja son obligatorios.");
+    return;
+  }
+  savingProduct.value = true;
+  try {
+    const payload: any = {
+      name: newProduct.name,
+      description: newProduct.description || undefined,
+      category_id: newProduct.category_id || undefined,
+      base_price: Number(newProduct.base_price),
+      requires_guarantee: newProduct.requires_guarantee,
+      units_per_box: Number(newProduct.units_per_box),
+      piece_type: newProduct.piece_type || undefined,
+      condition_status: newProduct.condition_status || undefined,
+      photo_url: newProduct.photo_url || undefined,
+      tag_ids: [],
+      variants: [],
+    };
+    const { data } = await api.post("/catalog/products", payload);
+    catalog.products.unshift(data);
+    toast.success("Producto creado");
+    showCreateProduct.value = false;
+    resetNewProduct();
+  } catch (error) {
+    // Toast handled by interceptor
+  } finally {
+    savingProduct.value = false;
+  }
+}
+
+function onFileChange(event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+  const isImage = file.type.startsWith("image/");
+  if (!isImage) {
+    toast.warning("Solo se permiten imágenes.");
+    return;
+  }
+  const maxBytes = 2 * 1024 * 1024; // 2MB
+  if (file.size > maxBytes) {
+    toast.warning("La imagen debe pesar menos de 2MB.");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    newProduct.photo_url = reader.result as string;
+    imageHint.value = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+  };
+  reader.readAsDataURL(file);
+}
 </script>
 
 <template>
   <section class="space-y-6">
+    <div
+      v-if="showCreateProduct"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+    >
+      <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-slate-900">Nuevo producto</h3>
+          <button class="text-slate-500 hover:text-slate-700" @click="showCreateProduct = false">✕</button>
+        </div>
+        <div class="mt-4 grid gap-3">
+          <label class="text-sm">
+            Nombre <span class="text-red-500">*</span>
+            <input v-model="newProduct.name" class="input mt-1" placeholder="Ej: Copa Bordeaux" />
+          </label>
+          <label class="text-sm">
+            Descripción
+            <textarea v-model="newProduct.description" class="input mt-1" rows="2" placeholder="Detalle corto"></textarea>
+          </label>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <label class="text-sm">
+              Precio base <span class="text-red-500">*</span>
+              <input v-model.number="newProduct.base_price" type="number" min="0" class="input mt-1" />
+            </label>
+            <label class="text-sm">
+              Unidades por caja <span class="text-red-500">*</span>
+              <input v-model.number="newProduct.units_per_box" type="number" min="1" class="input mt-1" />
+            </label>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <label class="text-sm">
+              Tipo / pieza
+              <input v-model="newProduct.piece_type" class="input mt-1" placeholder="copa, silla, mesa..." />
+            </label>
+            <label class="text-sm">
+              Condición
+              <input v-model="newProduct.condition_status" class="input mt-1" placeholder="A, B, usado..." />
+            </label>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <label class="text-sm">
+              Categoría
+              <select v-model="newProduct.category_id" class="input mt-1">
+                <option value="">Sin categoría</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+              </select>
+            </label>
+            <label class="flex items-center gap-2 text-sm mt-5">
+              <input type="checkbox" v-model="newProduct.requires_guarantee" />
+              Requiere garantía
+            </label>
+          </div>
+          <label class="text-sm">
+            URL de imagen
+            <input v-model="newProduct.photo_url" class="input mt-1" placeholder="https://..." />
+          </label>
+          <div class="space-y-1 text-sm">
+            <span class="form-label">O subir desde tu equipo</span>
+            <input type="file" accept="image/*" class="input" @change="onFileChange" />
+            <p v-if="imageHint" class="text-xs text-slate-500">Seleccionado: {{ imageHint }}</p>
+            <p class="text-xs text-slate-500">Se guarda como data URL en el campo imagen (sólo imágenes, rápido para MVP).</p>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <BaseButton variant="ghost" @click="showCreateProduct = false">Cancelar</BaseButton>
+            <BaseButton :loading="savingProduct" @click="createProduct">Crear</BaseButton>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div>
       <h1 class="text-2xl font-bold text-slate-900">Panel admin</h1>
       <p class="text-sm text-slate-600">Gestión de productos, stock y configuración de logística/temporadas.</p>
@@ -93,7 +248,7 @@ async function addSeason() {
     <BaseCard>
       <div class="mb-3 flex items-center justify-between">
         <h2 class="text-lg font-semibold">Catálogo</h2>
-        <BaseButton variant="ghost">Nuevo producto</BaseButton>
+        <BaseButton variant="ghost" @click="showCreateProduct = true">Nuevo producto</BaseButton>
       </div>
       <BaseTable>
         <template #head>

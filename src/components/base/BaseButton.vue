@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-const props = defineProps<{ variant?: "primary" | "secondary" | "ghost"; loading?: boolean; type?: "button" | "submit" | "reset"; full?: boolean }>();
+const props = defineProps<{
+  variant?: "primary" | "secondary" | "ghost";
+  loading?: boolean;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
+  full?: boolean;
+}>();
 const variantClass = computed(() => {
   switch (props.variant) {
     case "secondary":
@@ -18,8 +24,8 @@ const variantClass = computed(() => {
   <button
     :type="props.type || 'button'"
     class="btn"
-    :class="[variantClass, props.full ? 'w-full' : '']"
-    :disabled="props.loading"
+    :class="[variantClass, props.full ? 'w-full' : '', props.disabled || props.loading ? 'opacity-60 cursor-not-allowed' : '']"
+    :disabled="props.loading || props.disabled"
   >
     <span v-if="props.loading" class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
     <slot />

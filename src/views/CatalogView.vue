@@ -11,6 +11,7 @@ const cart = useCartStore();
 const search = ref("");
 const requireGuarantee = ref(false);
 const maxPrice = ref<number | undefined>();
+const imageError = ref<Record<string, boolean>>({});
 
 onMounted(async () => {
   await catalog.fetchCatalog();
@@ -31,6 +32,14 @@ async function add(productId: string) {
   if (!product) return;
   await cart.addItem(product, 1, 1);
 }
+
+function hasValidImage(productId: string, photoUrl?: string | null) {
+  return !!photoUrl && !imageError.value[productId];
+}
+
+function onImgError(productId: string) {
+  imageError.value = { ...imageError.value, [productId]: true };
+}
 </script>
 
 <template>
@@ -49,7 +58,20 @@ async function add(productId: string) {
     <div class="grid gap-4 md:grid-cols-3">
       <BaseCard v-for="product in filtered" :key="product.id">
         <div class="flex flex-col gap-3">
-          <img :src="product.photo_url || 'https://images.unsplash.com/photo-1523365280197-f21d6cfc1c67?auto=format&fit=crop&w=500&q=60'" alt="" class="h-40 w-full rounded-lg object-cover" />
+          <div class="relative h-40 w-full overflow-hidden rounded-lg bg-slate-100">
+            <img
+              v-if="hasValidImage(product.id, product.photo_url)"
+              :src="product.photo_url"
+              alt=""
+              class="h-full w-full object-cover"
+              loading="lazy"
+              @error="onImgError(product.id)"
+            />
+            <div v-else class="flex h-full w-full flex-col items-center justify-center text-slate-500">
+              <span class="text-2xl">🖼️</span>
+              <span class="text-xs mt-1 font-medium">Sin imagen</span>
+            </div>
+          </div>
           <div class="flex items-start justify-between">
             <div>
               <p class="text-lg font-semibold text-slate-900">{{ product.name }}</p>

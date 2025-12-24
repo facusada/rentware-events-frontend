@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { useToastStore } from "@/stores/toast";
+import { useUiStore } from "@/stores/ui";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
@@ -8,6 +9,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const auth = useAuthStore();
+  const ui = useUiStore();
   if (auth.token?.access_token) {
     config.headers.Authorization = `Bearer ${auth.token.access_token}`;
   }
@@ -15,6 +17,7 @@ api.interceptors.request.use((config) => {
   if (sessionToken) {
     config.headers["X-Session-Token"] = sessionToken;
   }
+  ui.startLoading();
   return config;
 });
 
@@ -33,8 +36,14 @@ function translateMessage(msg: string | undefined): string {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const ui = useUiStore();
+    ui.stopLoading();
+    return response;
+  },
   (error) => {
+    const ui = useUiStore();
+    ui.stopLoading();
     const toast = useToastStore();
     const status = error.response?.status;
     const detail = error.response?.data?.detail;

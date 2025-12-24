@@ -6,6 +6,7 @@
     </main>
     <FooterBar />
     <ToastContainer />
+    <GlobalLoading />
   </div>
 </template>
 
@@ -13,4 +14,5 @@
 import HeaderBar from "@/components/HeaderBar.vue";
 import FooterBar from "@/components/FooterBar.vue";
 import ToastContainer from "@/components/base/ToastContainer.vue";
+import GlobalLoading from "@/components/base/GlobalLoading.vue";
 </script>
