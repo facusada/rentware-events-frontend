@@ -7,6 +7,7 @@ const props = defineProps<{
   error?: string;
   required?: boolean;
   autofocus?: boolean;
+  maxlength?: number;
 }>();
 const emit = defineEmits(["update:modelValue"]);
 </script>
@@ -24,6 +25,7 @@ const emit = defineEmits(["update:modelValue"]);
       :placeholder="props.placeholder"
       :required="props.required"
       :autofocus="props.autofocus"
+      :maxlength="props.maxlength"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>

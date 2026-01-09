@@ -39,7 +39,7 @@ async function submit() {
       </div>
       <BaseInput v-model="fullName" label="Nombre" required />
       <BaseInput v-model="email" label="Email" type="email" required />
-      <BaseInput v-model="password" label="Contraseña" type="password" required />
+      <BaseInput v-model="password" label="Contraseña" type="password" required :maxlength="72" />
       <BaseButton full @click="submit">Registrarme</BaseButton>
     </div>
   </div>
