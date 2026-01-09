@@ -26,7 +26,13 @@ async function addToCart() {
 
 <template>
   <div v-if="product" class="grid gap-6 md:grid-cols-2">
-    <img :src="product.photo_url || 'https://images.unsplash.com/photo-1495435229349-e86db7bfa013?auto=format&fit=crop&w=800&q=60'" class="card-surface h-full w-full rounded-xl object-cover" />
+    <div class="card-surface flex h-[320px] items-center justify-center overflow-hidden rounded-xl sm:h-[420px] lg:h-[520px]">
+      <img
+        :src="product.photo_url || 'https://images.unsplash.com/photo-1495435229349-e86db7bfa013?auto=format&fit=crop&w=800&q=60'"
+        :alt="product.name"
+        class="max-h-full max-w-full object-contain"
+      />
+    </div>
     <div class="space-y-4">
       <div class="flex items-center gap-3">
         <h1 class="text-2xl font-bold text-slate-900">{{ product.name }}</h1>
